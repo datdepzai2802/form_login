@@ -1,110 +1,129 @@
-// Các bước làm
-//1. lấy formElement
-//2. lấy form-gruop để blur
-//3. lấy elment input
+function validator(option) {
+  var formElement = document.querySelector(option.form);
+  var ruleSelect = {};
 
-//*đối tượng calidator
-function validator(options) {
-  var selectorRules = {};
-  //*hàm thực hiện validate
-  function validate(elmentInput, rule) {
-    var elmentError = elmentInput.parentElement.querySelector(options.fromMessage);
-    var errorMessage;
+  function errorMessage(inputElement, rule) {
+    let formMessage = inputElement.parentElement.querySelector(
+      option.formMessage
+    );
+    let errorMessage;
 
-    //Lấy ra rule của selector
-    var rules = selectorRules[rule.selector];
+    var rules = ruleSelect[rule.select];
 
-    //lặp qua từng rule và kiểm tra
     for (var i = 0; i < rules.length; ++i) {
-      errorMessage = rules[i](elmentInput.value);
-      if(errorMessage) break;
+      errorMessage = rules[i](inputElement.value);
+      if (errorMessage) break;
     }
 
+    //kiểm tra dữ liệu input
     if (errorMessage) {
-      elmentError.innerText = errorMessage;
-      elmentInput.parentElement.classList.add("invalid");
+      formMessage.innerHTML = errorMessage;
+      inputElement.parentElement.classList.add("invalid");
     } else {
-      elmentError.innerText = "";
-      elmentInput.parentElement.classList.remove("invalid");
+      formMessage.innerHTML = "";
+      inputElement.parentElement.classList.remove("invalid");
     }
+
+    return !errorMessage;
   }
 
-  var formElement = document.querySelector(options.form);
-
   if (formElement) {
-      //* khi submit form button
-    formElement.onsubmit = function(e) {
-      e.preventDefault()
-      //* lặp qua từng rules và validate
-      options.rules.forEach(rule => {
-        var elmentInput = formElement.querySelector(rule.selector);
-        validate(elmentInput, rule);
-      })
-    }
+    //khi ấn submit form
+    formElement.onsubmit = function (e) {
+      e.preventDefault();
+      var errorSubmit = true;
+      option.rules.map(function (rule) {
+        var inputElement = formElement.querySelector(rule.select);
+        var errorFormSubmit = errorMessage(inputElement, rule);
+        if (!errorFormSubmit) {
+          errorSubmit = false;
+        }
+      });
 
-    options.rules.forEach((rule) => {
-      //*Lưu lại các rule trong input
-      if (Array.isArray(selectorRules[rule.selector])) {
-        selectorRules[rule.selector].push(rule.test);
+      if (errorSubmit) {
+        if (typeof option.onSubmit == "function") {
+          var enableinput = formElement.querySelectorAll("[name]");
+          var formValue = Array.from(enableinput).reduce(function (
+            values,
+            input
+          ) {
+            return (values[input.name] = input.value) && values;
+          },
+          {});
+
+          option.onSubmit(formValue);
+        }
+      }
+    };
+
+    // lặp qua mỗi rule
+    option.rules.map(function (rule) {
+      var inputElement = formElement.querySelector(rule.select);
+
+      //lưu lại rule
+      if (Array.isArray(ruleSelect[rule.select])) {
+        ruleSelect[rule.select].push(rule.test);
       } else {
-        selectorRules[rule.selector] = [rule.test];
+        ruleSelect[rule.select] = [rule.test];
       }
 
-      var elmentInput = formElement.querySelector(rule.selector);
-
-      if (elmentInput) {
-        //*xử lý blur khỏi input
-        elmentInput.onblur = function () {
-          validate(elmentInput, rule);
+      if (inputElement) {
+        inputElement.onblur = function () {
+          errorMessage(inputElement, rule);
         };
-
-        //* xử lý xóa lỗi khi người dùng nhập
-        elmentInput.oninput = function () {
-          var elmentError = elmentInput.parentElement.querySelector(
-            options.fromMessage
+        //kiểm tra nhập input dữ liệu
+        inputElement.oninput = function () {
+          let formMessage = inputElement.parentElement.querySelector(
+            option.formMessage
           );
-          elmentError.innerText = "";
-          elmentInput.parentElement.classList.remove("invalid");
+          if (inputElement.value) {
+            formMessage.innerHTML = "";
+            inputElement.parentElement.classList.remove("invalid");
+          }
         };
       }
     });
-    // console.log(selectorRules);
   }
+  // console.log(ruleSelect);
 }
 
-//*định nghĩa các ruls
-validator.isRequired = function (selector) {
+//rules
+validator.isRequest = function (select) {
   return {
-    selector: selector,
-    test: function (value) {
-      return value.trim() ? undefined : "Vui lòng nhập trường này ";
+    select,
+    test(value) {
+      return value ? undefined : "Thông tin chưa được nhập";
     },
   };
 };
-validator.isEmail = function (selector) {
+validator.isEmail = function (select) {
   return {
-    selector: selector,
-    test: function (value) {
-      var regexEmail = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-      return regexEmail.test(value) ? undefined : "Trường này phải là email";
+    select,
+    test(value) {
+      const regex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+      return regex.test(value) ? undefined : "Email không chính xác";
     },
   };
 };
-validator.minLength = function (selector, min) {
+
+validator.isMinleng = function (select, min) {
   return {
-    selector: selector,
-    test: function (value) {
-      return value.length >= 6 ? undefined : `Vui lòng nhập trên ${min} ký tự`;
-    },
-  };
-};
-validator.isConfirmed = function (selector, comfrimValue, comfrimPass) {
-  return {
-    selector: selector,
-    test: function (value) {
-      return value === comfrimValue()
+    select,
+    test(value) {
+      return value.length >= min
         ? undefined
-        : comfrimPass || "Nhâp sai vui lòng nhập lại ";
+        : `Mật khẩu cần ít nhất ${min} ký tự`;
+    },
+  };
+};
+
+validator.isPasswordConfirm = function (select, comFirm, mesage) {
+  return {
+    select,
+    test(value) {
+      return value === comFirm()
+        ? undefined
+        : mesage || "Giá trị nhập lại không chính xác";
     },
   };
 };

@@ -69,21 +69,28 @@
       </form>
     </div>
   </body>
+  <!-- <script src="test.js"></script> -->
   <script src="validator.js"></script>
   <script>
-    validator({
-      form: "#form-1",
-      fromMessage: ".form-message",
-      rules: [
-        validator.isRequired("#fullname"),
-        validator.isRequired("#email"),
-        validator.isEmail("#email"),
-        validator.minLength("#password", 6),
-        validator.isRequired("#password_confirmation"),
-        validator.isConfirmed("#password_confirmation", function () {
-          return document.querySelector('#form-1 #password').value;
-        },'Mật khẩu nhập lại không chính xác'),
+   validator({
+     form:'#form-1',
+     formMessage:'.form-message',
+     rules:[
+       validator.isRequest('#fullname'),
+       validator.isRequest('#email'),
+       validator.isEmail('#email'),
+       validator.isRequest('#password'),
+       validator.isMinleng('#password', 6),
+       validator.isRequest('#password_confirmation'),
+       validator.isPasswordConfirm('#password_confirmation', function() {
+            return document.querySelector('#form-1 #password').value     
+       },'Mật khẩu nhập lại không chính xác'),
+       
       ],
-    });
+      onSubmit: function(data) {
+       console.log(data)
+      },
+   })
+    
   </script>
 </html>
